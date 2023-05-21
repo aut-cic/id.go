@@ -19,9 +19,6 @@ const (
 
 	// prefix indicates environment variables prefix.
 	prefix = "id_"
-
-	upTemplate     = "================ Loaded Configuration ================"
-	bottomTemplate = "======================================================"
 )
 
 // New reads configuration with koanf.
