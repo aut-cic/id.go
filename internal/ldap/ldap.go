@@ -57,6 +57,8 @@ func (m Manager) connect() (*ldap.Conn, error) {
 }
 
 func (m Manager) ChangePassword(username string, password string) error {
+	// PasswordModify does not work with AD
+	// https://github.com/go-ldap/ldap/issues/106
 	conn, err := m.connect()
 	if err != nil {
 		return err
