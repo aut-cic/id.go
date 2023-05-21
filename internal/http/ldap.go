@@ -1,20 +1,18 @@
 package http
 
 import (
-	"fmt"
-	"log"
+	"errors"
 	"net/http"
 
-	"github.com/go-ldap/ldap/v3"
+	"github.com/aut-cic/id.go/internal/ldap"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
-	"golang.org/x/text/encoding/unicode"
 )
 
 type LDAP struct {
-	Conn   *ldap.Conn
-	Logger *zap.Logger
+	Manager ldap.Manager
+	Logger  *zap.Logger
 }
 
 func (l LDAP) ChangePassword(c echo.Context) error {
@@ -31,23 +29,14 @@ func (l LDAP) ChangePassword(c echo.Context) error {
 		return echo.ErrBadRequest
 	}
 
-	userDN := fmt.Sprintf("CN=%s,CN=Users,DC=aku,DC=ac,DC=ir", username)
-
-	utf16 := unicode.UTF16(unicode.LittleEndian, unicode.IgnoreBOM)
-
-	passReq := ldap.NewModifyRequest(userDN, nil)
-
-	pwdEncoded, _ := utf16.NewEncoder().String(fmt.Sprintf("\"%s\"", password))
-	passReq.Replace("unicodePwd", []string{pwdEncoded})
-
-	if err := l.Conn.Modify(passReq); err != nil {
-		if ldap.IsErrorWithCode(err, 32) {
+	if err := l.Manager.ChangePassword(username, password); err != nil {
+		if errors.Is(err, ldap.ErrUserNotFound) {
 			l.Logger.Error("user does not exist", zap.String("username", username))
 
 			return echo.ErrNotFound
 		}
 
-		log.Fatal(err)
+		l.Logger.Error("change password using ldap failed", zap.Error(err))
 
 		return echo.ErrInternalServerError
 	}
