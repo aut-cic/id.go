@@ -38,7 +38,7 @@ func main() {
 	http.LDAP{
 		Conn:   l,
 		Logger: logger,
-	}.Register(app.Group("/"))
+	}.Register(app.Group(""))
 
 	if err := app.Start(":1373"); err != nil {
 		logger.Fatal("http server failed", zap.Error(err))
