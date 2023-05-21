@@ -13,21 +13,21 @@ import (
 func main() {
 	cfg := config.New()
 
-	m := ldap.Manager{
-		Address:  cfg.Address,
-		Username: cfg.Username,
-		Password: cfg.Password,
-	}
-
-	app := echo.New()
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	m, err := ldap.New(cfg.LDAP, logger.Named("ldap"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	app := echo.New()
+
 	http.LDAP{
 		Manager: m,
-		Logger:  logger,
+		Logger:  logger.Named("http.ldap"),
 	}.Register(app.Group(""))
 
 	if err := app.Start(":1373"); err != nil {

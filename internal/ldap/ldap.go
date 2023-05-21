@@ -6,15 +6,36 @@ import (
 	"fmt"
 
 	"github.com/go-ldap/ldap/v3"
+	"go.uber.org/zap"
 	"golang.org/x/text/encoding/unicode"
 )
 
 var ErrUserNotFound = errors.New("user does not exist")
 
 type Manager struct {
-	Username string
-	Password string
-	Address  string
+	Config
+	Logger *zap.Logger
+}
+
+func New(cfg Config, logger *zap.Logger) (Manager, error) {
+	m := Manager{
+		Config: cfg,
+		Logger: logger,
+	}
+
+	conn, err := m.connect()
+	if err != nil {
+		return m, err
+	}
+
+	who, err := conn.WhoAmI(nil)
+	if err != nil {
+		return m, err
+	}
+
+	logger.Info("ldap knows us", zap.String("AuthzID", who.AuthzID))
+
+	return m, nil
 }
 
 func (m Manager) connect() (*ldap.Conn, error) {

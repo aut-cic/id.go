@@ -1,8 +1,8 @@
 package config
 
+import "github.com/aut-cic/id.go/internal/ldap"
+
 // Config holds all configurations.
 type Config struct {
-	Address  string `koanf:"address"`
-	Username string `koanf:"username"`
-	Password string `koanf:"password"`
+	LDAP ldap.Config `koanf:"ldap"`
 }
