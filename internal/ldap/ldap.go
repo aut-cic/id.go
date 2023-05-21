@@ -27,6 +27,7 @@ func New(cfg Config, logger *zap.Logger) (Manager, error) {
 	if err != nil {
 		return m, err
 	}
+	defer conn.Close()
 
 	who, err := conn.WhoAmI(nil)
 	if err != nil {
@@ -43,7 +44,6 @@ func (m Manager) connect() (*ldap.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer l.Close()
 
 	if err := l.StartTLS(&tls.Config{InsecureSkipVerify: true}); err != nil {
 		return nil, err
@@ -61,6 +61,7 @@ func (m Manager) ChangePassword(username string, password string) error {
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 
 	userDN := fmt.Sprintf("CN=%s,CN=Users,DC=aku,DC=ac,DC=ir", username)
 
