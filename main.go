@@ -27,7 +27,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	userDN := "CN=kahr123,CN=Users,DC=aku,DC=ac,DC=ir"
+	username := "kahr123"
+
+	userDN := fmt.Sprintf("CN=%s,CN=Users,DC=aku,DC=ac,DC=ir", username)
 
 	utf16 := unicode.UTF16(unicode.LittleEndian, unicode.IgnoreBOM)
 	// According to the MS docs in the links above
@@ -38,6 +40,9 @@ func main() {
 	passReq.Replace("unicodePwd", []string{pwdEncoded})
 
 	if err := l.Modify(passReq); err != nil {
+		if ldap.IsErrorWithCode(err, 32) {
+			log.Fatalf("user %s does not exist", username)
+		}
 		log.Fatal(err)
 	}
 }
