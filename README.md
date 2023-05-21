@@ -1,4 +1,4 @@
-# Go implementation for Backend of the ID server
+<h1 align="center">Go implementation for Backend of the ID server</h1>
 
 ## Introduction
 
