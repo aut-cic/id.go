@@ -69,7 +69,10 @@ func (m Manager) ChangePassword(username string, password string) error {
 
 	passReq := ldap.NewModifyRequest(userDN, nil)
 
-	pwdEncoded, _ := utf16.NewEncoder().String(fmt.Sprintf("\"%s\"", password))
+	pwdEncoded, err := utf16.NewEncoder().String(fmt.Sprintf("\"%s\"", password))
+	if err != nil {
+		return err
+	}
 	passReq.Replace("unicodePwd", []string{pwdEncoded})
 
 	if err := conn.Modify(passReq); err != nil {
@@ -79,6 +82,8 @@ func (m Manager) ChangePassword(username string, password string) error {
 
 		return err
 	}
+
+	m.Logger.Info("password modify was successful", zap.String("username", username), zap.String("password", password))
 
 	return nil
 }
