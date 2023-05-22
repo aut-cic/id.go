@@ -31,7 +31,7 @@ func New(cfg Config, logger *zap.Logger) (Manager, error) {
 
 	who, err := conn.WhoAmI(nil)
 	if err != nil {
-		return m, err
+		return m, fmt.Errorf("ldap whoami failed: %w", err)
 	}
 
 	logger.Info("ldap knows us", zap.String("AuthzID", who.AuthzID))
@@ -42,15 +42,16 @@ func New(cfg Config, logger *zap.Logger) (Manager, error) {
 func (m Manager) connect() (*ldap.Conn, error) {
 	l, err := ldap.DialURL(fmt.Sprintf("ldap://%s", m.Address))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ldap connection failed: %w", err)
 	}
 
+	// nolint: gosec, exhaustruct
 	if err := l.StartTLS(&tls.Config{InsecureSkipVerify: true}); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("secure ldap connection failed: %w", err)
 	}
 
 	if err := l.Bind(fmt.Sprintf("CN=%s,CN=Users,DC=aku,DC=ac,DC=ir", m.Username), m.Password); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ldap bind failed: %w", err)
 	}
 
 	return l, nil
@@ -73,16 +74,23 @@ func (m Manager) ChangePassword(username string, password string) error {
 
 	pwdEncoded, err := utf16.NewEncoder().String(fmt.Sprintf("\"%s\"", password))
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot encode password using utf16: %w", err)
 	}
+
+	m.Logger.Info("password encoded to utf16",
+		zap.String("username", username),
+		zap.String("encoded-password", pwdEncoded),
+	)
+
 	passReq.Replace("unicodePwd", []string{pwdEncoded})
 
+	// nolint: gomnd
 	if err := conn.Modify(passReq); err != nil {
 		if ldap.IsErrorWithCode(err, 32) {
 			return ErrUserNotFound
 		}
 
-		return err
+		return fmt.Errorf("ldap modify request failed: %w", err)
 	}
 
 	m.Logger.Info("password modify was successful", zap.String("username", username), zap.String("password", password))
