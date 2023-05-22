@@ -4,13 +4,18 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"regexp"
 
 	"github.com/go-ldap/ldap/v3"
 	"go.uber.org/zap"
 	"golang.org/x/text/encoding/unicode"
 )
 
-var ErrUserNotFound = errors.New("user does not exist")
+var (
+	ErrUserNotFound         = errors.New("user does not exist")
+	ErrPasswordPolicyFailed = errors.New("password does not match the policy on server (password history, complexity)")
+	ldapErrorMatchRegex     = regexp.MustCompile(`: ([A-F0-9]+): SvcErr: ([\w-]+)`)
+)
 
 type Manager struct {
 	Config
@@ -88,6 +93,18 @@ func (m Manager) ChangePassword(username string, password string) error {
 	if err := conn.Modify(passReq); err != nil {
 		if ldap.IsErrorWithCode(err, 32) {
 			return ErrUserNotFound
+		}
+
+		// catch some common ldap error messages and make them human readable
+		if ldap.IsErrorWithCode(err, ldap.LDAPResultUnwillingToPerform) {
+			errCodes := ldapErrorMatchRegex.FindStringSubmatch(err.Error())
+			if errCodes != nil {
+				switch errCodes[1] {
+				case "0000052D":
+					return ErrPasswordPolicyFailed
+				default:
+				}
+			}
 		}
 
 		return fmt.Errorf("ldap modify request failed: %w", err)
