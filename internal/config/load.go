@@ -42,7 +42,11 @@ func New() *Config {
 		log.Fatalf("error unmarshalling config: %s", err)
 	}
 
-	indent, _ := json.MarshalIndent(instance, "", "\t")
+	indent, err := json.MarshalIndent(instance, "", "\t")
+	if err != nil {
+		panic(err)
+	}
+
 	indent = pretty.Color(indent, nil)
 	tmpl := `
 	================ Loaded Configuration ================
