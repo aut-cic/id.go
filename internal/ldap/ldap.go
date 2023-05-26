@@ -45,14 +45,10 @@ func New(cfg Config, logger *zap.Logger) (Manager, error) {
 }
 
 func (m Manager) connect() (*ldap.Conn, error) {
-	l, err := ldap.DialURL(fmt.Sprintf("ldap://%s", m.Address))
+	// nolint: gosec, exhaustruct
+	l, err := ldap.DialTLS("tcp", m.Address, &tls.Config{InsecureSkipVerify: true})
 	if err != nil {
 		return nil, fmt.Errorf("ldap connection failed: %w", err)
-	}
-
-	// nolint: gosec, exhaustruct
-	if err := l.StartTLS(&tls.Config{InsecureSkipVerify: true}); err != nil {
-		return nil, fmt.Errorf("secure ldap connection failed: %w", err)
 	}
 
 	if err := l.Bind(fmt.Sprintf("CN=%s,CN=Users,DC=aku,DC=ac,DC=ir", m.Username), m.Password); err != nil {
