@@ -81,6 +81,7 @@ func (m Manager) ChangePassword(username string, password string) error {
 	m.Logger.Info("password encoded to utf16",
 		zap.String("username", username),
 		zap.String("encoded-password", pwdEncoded),
+		zap.Binary("encoded-password-bytes", []byte(pwdEncoded)),
 	)
 
 	passReq.Replace("unicodePwd", []string{pwdEncoded})
