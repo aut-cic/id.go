@@ -11,11 +11,6 @@ import (
 	"golang.org/x/text/encoding/unicode"
 )
 
-const (
-	controlTypeLdapServerPolicyHints           = "1.2.840.113556.1.4.2239"
-	controlTypeLdapServerPolicyHintsDeprecated = "1.2.840.113556.1.4.2066"
-)
-
 var (
 	ErrUserNotFound         = errors.New("user does not exist")
 	ErrPasswordPolicyFailed = errors.New("password does not match the policy on server (password history, complexity)")
