@@ -87,23 +87,7 @@ func (m Manager) ChangePassword(username string, password string) error {
 		zap.String("encoded-password", pwdEncoded),
 	)
 
-	// add additional control to request if supported
-	controlTypes, err := getSupportedControl(conn)
-	if err != nil {
-		return err
-	}
-
-	var control []ldap.Control
-
-	for _, oid := range controlTypes {
-		if oid == controlTypeLdapServerPolicyHints || oid == controlTypeLdapServerPolicyHintsDeprecated {
-			control = append(control, &ldapControlServerPolicyHints{oid: oid})
-
-			break
-		}
-	}
-
-	passReq := ldap.NewModifyRequest(userDN, control)
+	passReq := ldap.NewModifyRequest(userDN, nil)
 
 	passReq.Replace("unicodePwd", []string{pwdEncoded})
 
@@ -131,16 +115,4 @@ func (m Manager) ChangePassword(username string, password string) error {
 	m.Logger.Info("password modify was successful", zap.String("username", username), zap.String("password", password))
 
 	return nil
-}
-
-func getSupportedControl(conn ldap.Client) ([]string, error) {
-	req := ldap.NewSearchRequest("", ldap.ScopeBaseObject, ldap.NeverDerefAliases, 0, 0, false,
-		"(objectClass=*)", []string{"supportedControl"}, nil)
-
-	res, err := conn.Search(req)
-	if err != nil {
-		return nil, fmt.Errorf("ldap supported control searching failed %w", err)
-	}
-
-	return res.Entries[0].GetAttributeValues("supportedControl"), nil
 }
