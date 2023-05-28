@@ -6,9 +6,15 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/go-asn1-ber/asn1-ber"
 	"github.com/go-ldap/ldap/v3"
 	"go.uber.org/zap"
 	"golang.org/x/text/encoding/unicode"
+)
+
+const (
+	controlTypeLdapServerPolicyHints           = "1.2.840.113556.1.4.2239"
+	controlTypeLdapServerPolicyHintsDeprecated = "1.2.840.113556.1.4.2066"
 )
 
 var (
@@ -58,6 +64,48 @@ func (m Manager) connect() (*ldap.Conn, error) {
 	return l, nil
 }
 
+type (
+	// ldapControlServerPolicyHints implements ldap.Control
+	ldapControlServerPolicyHints struct {
+		oid string
+	}
+)
+
+// GetControlType implements ldap.Control
+func (c *ldapControlServerPolicyHints) GetControlType() string {
+	return c.oid
+}
+
+// Encode implements ldap.Control
+func (c *ldapControlServerPolicyHints) Encode() *ber.Packet {
+	packet := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "Control")
+	packet.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, c.GetControlType(), "Control Type (LDAP_SERVER_POLICY_HINTS_OID)"))
+	packet.AppendChild(ber.NewBoolean(ber.ClassUniversal, ber.TypePrimitive, ber.TagBoolean, true, "Criticality"))
+
+	p2 := ber.Encode(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, nil, "Control Value (Policy Hints)")
+	seq := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "PolicyHintsRequestValue")
+	seq.AppendChild(ber.NewInteger(ber.ClassUniversal, ber.TypePrimitive, ber.TagInteger, 1, "Flags"))
+	p2.AppendChild(seq)
+	packet.AppendChild(p2)
+
+	return packet
+}
+
+// String implements ldap.Control
+func (c *ldapControlServerPolicyHints) String() string {
+	return "Enforce password history policies during password set: " + c.GetControlType()
+}
+
+// getSupportedControl retrieves supported extended control types
+func getSupportedControl(conn ldap.Client) ([]string, error) {
+	req := ldap.NewSearchRequest("", ldap.ScopeBaseObject, ldap.NeverDerefAliases, 0, 0, false, "(objectClass=*)", []string{"supportedControl"}, nil)
+	res, err := conn.Search(req)
+	if err != nil {
+		return nil, err
+	}
+	return res.Entries[0].GetAttributeValues("supportedControl"), nil
+}
+
 func (m Manager) ChangePassword(username string, password string) error {
 	// PasswordModify does not work with AD
 	// https://github.com/go-ldap/ldap/issues/106
@@ -71,8 +119,6 @@ func (m Manager) ChangePassword(username string, password string) error {
 
 	utf16 := unicode.UTF16(unicode.LittleEndian, unicode.IgnoreBOM)
 
-	passReq := ldap.NewModifyRequest(userDN, nil)
-
 	pwdEncoded, err := utf16.NewEncoder().String(fmt.Sprintf("\"%s\"", password))
 	if err != nil {
 		return fmt.Errorf("cannot encode password using utf16: %w", err)
@@ -83,6 +129,21 @@ func (m Manager) ChangePassword(username string, password string) error {
 		zap.String("encoded-password", pwdEncoded),
 		zap.Binary("encoded-password-bytes", []byte(pwdEncoded)),
 	)
+
+	// add additional control to request if supported
+	controlTypes, err := getSupportedControl(conn)
+	if err != nil {
+		return err
+	}
+	control := []ldap.Control{}
+	for _, oid := range controlTypes {
+		if oid == controlTypeLdapServerPolicyHints || oid == controlTypeLdapServerPolicyHintsDeprecated {
+			control = append(control, &ldapControlServerPolicyHints{oid: oid})
+			break
+		}
+	}
+
+	passReq := ldap.NewModifyRequest(userDN, control)
 
 	passReq.Replace("unicodePwd", []string{pwdEncoded})
 
