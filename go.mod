@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/go-ldap/ldap/v3 v3.4.4
-	github.com/go-playground/validator/v10 v10.14.0
+	github.com/go-playground/validator/v10 v10.14.1
 	github.com/knadh/koanf/parsers/toml v0.1.0
 	github.com/knadh/koanf/providers/env v0.1.0
 	github.com/knadh/koanf/providers/file v0.1.0
@@ -14,7 +14,6 @@ require (
 	github.com/tidwall/pretty v1.2.1
 	go.uber.org/zap v1.24.0
 	golang.org/x/text v0.9.0
-	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d
 )
 
 require (
