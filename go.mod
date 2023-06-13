@@ -3,7 +3,7 @@ module github.com/aut-cic/id.go
 go 1.20
 
 require (
-	github.com/go-ldap/ldap/v3 v3.4.4
+	github.com/go-ldap/ldap/v3 v3.4.5
 	github.com/go-playground/validator/v10 v10.14.1
 	github.com/knadh/koanf/parsers/toml v0.1.0
 	github.com/knadh/koanf/providers/env v0.1.0
