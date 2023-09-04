@@ -13,7 +13,7 @@ require (
 	github.com/labstack/echo/v4 v4.11.1
 	github.com/tidwall/pretty v1.2.1
 	go.uber.org/zap v1.25.0
-	golang.org/x/text v0.12.0
+	golang.org/x/text v0.13.0
 )
 
 require (
